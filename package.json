@@ -1,0 +1,34 @@
+{
+  "name": "mimosa-vault",
+  "version": "0.0.1",
+  "homepage": "http://github.com/breathe/mimosa-vault",
+  "author": "N. Ben Cohen <breathe@github.com>",
+  "description": "Protect api keys, username credentials, and other secrets using the node vault project",
+  "contributors": [
+    {
+      "name": "N. Ben Cohen",
+      "email": "ncohen@ucsd.edu"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/breathe/mimosa-vault"
+  },
+  "keywords": [
+    "mimosa",
+    "mmodule",
+    "vault"
+  ],
+  "dependencies": {
+    "vault": "*",
+    "shelljs": "*"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=0.10"
+  },
+  "main": "./lib/index",
+  "scripts": {
+    "prepublish": "mimosa build"
+  }
+}
