@@ -1,62 +1,47 @@
-Building a Module
-===
-
-As this is a CoffeeScript skeleton, it comes with its own `mimosa-config.coffee` that you can use to compile the skeleton itself.  (Installing CoffeeScript modules to NPM is frowned upon.)  Compilation of the skeleton will happen naturally when you run `mimosa mod:install`.  `mimosa mod:install` is how you would install this module locally to test it.
-
-The contents of this skeleton consist of some example code, a ton of comments and some [Docco](http://jashkenas.github.io/docco/) style documentation.
-
-If you have any questions about building a mimosa module, feel free to hit up @mimosajs or open up [an issue](https://github.com/dbashford/mimosa/issues?state=open) for discussion purposes.
-
-The rest of this README is what you may want to transform the README to once development is complete.
-
 mimosa-vault
 ===========
 ## Overview
 
-Mimosa module which wraps the nodejs vault project to generate protected api keys and secrets for a project.
+Mimosa module which wraps the nodejs [vault](https://github.com/jcoglan/vault/tree/master/node) project to generate
+protected api keys and secrets for a project.  The purpose of this module is to easily allow the project to define the
+set of endpoints for which a secret is needed and have the build tool inside appropriate 'passwords' protecting those
+end points derived from a 'secret key' which is kept out of the project's source directory.
 
-The intent is to easily allow the project to define the set of endpoints for which a secret is needed, while keeping
-all secrets out of the project source code.
-
-During project build, mimosa-vault will use a project specific ssh key (saved outside the project dir) to transform
-any .vault.js or .vault.coffee files within the project's source javascript directory into a json file which maps the
-username to the secret which the application should use to authenticate to that service.
+When this module is included, mimosa-vault will use a project specific 'secret key' (saved outside the project dir) to
+transform any .vault.js or .vault.coffee files within the project's source javascript directory into a json file
+which maps the username to the secret which the application should use to authenticate to that service.
 
 ## Usage
 
-Create an ssh key to protect this project:
-    `mimosa vault:new-key`
-
 Add `'vault'` to your list of modules.  That's all!  Mimosa will install the module for you when you start up.
 
-Use the command `mimosa vault--help`
+By default a key will be generated at .mimosa/vault/{project-name}.key if one does not already exist.  Overwrite
+the key at any time.  Copy the key from another host or location to allow mimosa-vault to re-generate the same
+secrets used elsewhere.
 
 ## Functionality
 
-Describe the api's which need secrets where needed as simple json objects within your javascriptDir:
-    eg
+Describe the api's which need secrets as simple files within your javascriptDir.  For example:
 
 assets/javascripts/some_secrets.vault.coffee
 ```
 module.exports =
-    "my_twitter_account": null
-    "my_development_couchdb_account": null
+    "my_twitter_account": {"upper":1, "lower":0}
+    "my_development_couchdb_account": {}
 ```
 
 mimosa-vault will compile this to:
 
-public/javascripts/some_secrets.vault.js
+public/javascripts/some_secrets.json
 ```
-module.exports = {
-    "my_twitter_account": "asdlfkj3284u19834oijfo283u4oiqj234lk23423l"
-    "my_development_couchdb_account": "alskj3o824u01234alwko42u34l12j41,23;sp"
-}
+{"my_twitter_account":"DUITB66R0ATQOUVZ9W7F","my_development_couchdb_account":"qdJdsasYMSn dHN4QcNr"}
 ```
 
-Where the secret shown above is actually a unique cryptographic hash mapping (ssh_key, "twitter-my_twitter_account") -> "secret"
+Where the secret shown above is actually a unique cryptographic hash mapping
+(secret, "twitter-my_twitter_account") -> "derived secret"
 
-If needed you can control the alphabet into which the secret is mapped by passing options to the underlying vault call used to
-generate your password.
+If needed you can control the alphabet into which the secret is mapped by passing options to the underlying vault call
+used to generate your password.
 
 ```
 module.exports = {
@@ -70,11 +55,17 @@ https://github.com/jcoglan/vault
 ## Default Config
 
 ```
-  extensionRegex: /.vault.[a-zA-Z]+$/    # regex indicating file extensions this module should process
+    vault:
+      extensionRegex: /.vault.[a-zA-Z]+$/    # regex indicating file extensions this module should process
 
-  sshKey: null                  # path to ssh key which should be used to derive the secrets
-                                # -- should refer to a path outside of the project dir --
-                                # if null, mimosa will use the path
-                                # ~/.mimosa/vault/{app}.key where {app} is the name of the
-                                # project as given in the package.json file
+      secret: null                  # path to secret passphrase which should be used to derive the secrets
+                                    # -- should refer to a file at a path outside of the project source control --
+                                    # if null, mimosa will use the path
+                                    # .mimosa/vault/{app}.key within the project directory where {app} is the name of
+                                    # the project as given in the package.json file
+
+      outputExtension: ".json"      # outputted is formatted as json -- write json file by default
+
+      mimosaSecrets: {}             # secrets which should be derived for the build process and made
+                                    # available for other mimosa-modules as config.vault.mimosaSecrets
 ```
