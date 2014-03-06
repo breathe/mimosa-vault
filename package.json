@@ -21,7 +21,8 @@
   ],
   "dependencies": {
     "vault": "*",
-    "shelljs": "*"
+    "shelljs": "*",
+    "underscore": "*"
   },
   "license": "MIT",
   "engines": {

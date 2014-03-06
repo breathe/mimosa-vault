@@ -39,8 +39,8 @@ Describe the api's which need secrets where needed as simple json objects within
 assets/javascripts/some_secrets.vault.coffee
 ```
 module.exports =
-    "twitter": "my_twitter_account",
-    "couchdb" "my_development_couchdb_account"
+    "my_twitter_account": null
+    "my_development_couchdb_account": null
 ```
 
 mimosa-vault will compile this to:
@@ -48,19 +48,19 @@ mimosa-vault will compile this to:
 public/javascripts/some_secrets.vault.js
 ```
 module.exports = {
-    "twitter": ["my_twitter_account", "asdlfkj3284u19834oijfo283u4oiqj234lk23423l"]
-    "couchdb": ["my_development_couchdb_account", "alskj3o824u01234alwko42u34l12j41,23;sp"]
+    "my_twitter_account": "asdlfkj3284u19834oijfo283u4oiqj234lk23423l"
+    "my_development_couchdb_account": "alskj3o824u01234alwko42u34l12j41,23;sp"
 }
 ```
 
 Where the secret shown above is actually a unique cryptographic hash mapping (ssh_key, "twitter-my_twitter_account") -> "secret"
 
-If needed you can control the alphabet used for the secret by passing options to the underlying vault call used to
+If needed you can control the alphabet into which the secret is mapped by passing options to the underlying vault call used to
 generate your password.
 
 ```
 module.exports = {
-    "some_service": ["some_user", "--upper 1 --symbol 0"]
+    "some_service_login": "--upper 1 --symbol 0"
 }
 
 See the vault project for a description of the options which can be used to control the password alphabet
@@ -70,9 +70,11 @@ https://github.com/jcoglan/vault
 ## Default Config
 
 ```
-    extension: [".vault.js"]    # list of patterns which should be processed by mimosa-vault
-    secretpath: null            # path to ssh key which should be used to derive the project secrets (should refer to
-                                # a path outside of the project dir!).
-                                # If left null will use path .mimosa/vault/{projectName}.key where projectName is the
-                                # name specified in package.json
+  extensionRegex: /.vault.[a-zA-Z]+$/    # regex indicating file extensions this module should process
+
+  sshKey: null                  # path to ssh key which should be used to derive the secrets
+                                # -- should refer to a path outside of the project dir --
+                                # if null, mimosa will use the path
+                                # ~/.mimosa/vault/{app}.key where {app} is the name of the
+                                # project as given in the package.json file
 ```
