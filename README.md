@@ -68,4 +68,5 @@ https://github.com/jcoglan/vault
 
       mimosaSecrets: {}             # secrets which should be derived for the build process and made
                                     # available for other mimosa-modules as config.vault.mimosaSecrets
+                                    # this allows derived secrets to be passed to other mimosa modules
 ```
