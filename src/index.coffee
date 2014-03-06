@@ -16,26 +16,26 @@ _requireFromString = (src, filename) ->
   m._compile(src, filename)
   return m.exports
 
-_outputFileName = (config, inputFileName) ->
-  inputFileName.replace(config.extensionRegex, config.outputExtension)
+_outputFileName = (mimosaConfig, inputFileName) ->
+  inputFileName.replace(mimosaConfig.extensionRegex, mimosaConfig.outputExtension)
 
 _compileExtension = (mimosaConfig, options, next) ->
-  config = mimosaConfig.vault
+  vaultConfig = mimosaConfig.vault
   logger = mimosaConfig.log
 
-  if (options.inputFile.match(config.extensionRegex))
+  if (options.inputFile.match(vaultConfig.extensionRegex))
     file = options.files[0]
     try
       json_obj = _requireFromString(file.outputFileText, file.outputFileName)
-      file.outputFileText = JSON.stringify(compileVault(config.secret, json_obj))
-      file.outputFileName = _outputFileName(config, file.outputFileName)
+      file.outputFileText = JSON.stringify(compileVault(vaultConfig.secret, json_obj))
+      file.outputFileName = _outputFileName(vaultConfig, file.outputFileName)
     catch err
       logger.error("mimosa-vault failed to process [[ #{file.inputFileName} ]]: #{err}")
       options.files.splice(options.files.indexOf(file, 1))
   next()
 
-registration = (config, register) ->
-  extensions = config.extensions.javascript
+registration = (mimosaConfig, register) ->
+  extensions = mimosaConfig.extensions.javascript
   register(['buildFile','add','update'], 'afterCompile', _compileExtension, extensions);
 
 module.exports =
@@ -43,4 +43,3 @@ module.exports =
   defaults:        config.defaults
   placeholder:     config.placeholder
   validate:        config.validate
-  compileVaule:    compileVault
