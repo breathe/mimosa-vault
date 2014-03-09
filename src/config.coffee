@@ -4,6 +4,8 @@
 
 path = require("path")
 fs = require("fs")
+path = require("path")
+wrench = require("wrench")
 crypto = require 'crypto'
 compileVault = require './plugin'
 
@@ -13,6 +15,7 @@ exports.defaults = ->
     secret: null
     outputExtension: ".json"
     buildSecrets: {}
+    enforcePermissions: true
 
 exports.placeholder = ->
   """
@@ -29,53 +32,72 @@ exports.placeholder = ->
       outputExtension: ".json"      # outputted is formatted as json -- write json file by default
 
       mimosaSecrets: {}             # secrets which should be derived for the build process and made
-                                    # available for other mimosa-modules as config.vault.mimosaSecrets
+                                    # available for other mimosa-modules as mimosaConfig.vault.mimosaSecrets
+      enforcePermissions: true      # will chmod vault.secret and generated files to ensure they are readable by
+                                    # file owner only
   """
 
 _genSecret = () ->
   seed = crypto.randomBytes(100)
   return crypto.createHash('sha1').update(seed).digest('hex')
 
-_readSecret = (secretPath, config) ->
-  logger = config.log
+_modifyPermissions = (secretPath, mimosaConfig) ->
+  if mimosaConfig.vault.enforcePermissions
+    mimosaConfig.log.info("Setting permissions on vault secret file [[ #{secretPath} ]] to owner read/write only")
+    fs.chmodSync(secretPath, 0o600)
+
+_readSecret = (secretPath, mimosaConfig) ->
+  logger = mimosaConfig.log
+
   if fs.existsSync(secretPath)
+    _modifyPermissions(secretPath, mimosaConfig)
+
     logger.info "Reading vault secret at [[ #{secretPath} ]]"
-    # use contents of file as passphrase
     return fs.readFileSync(secretPath, "ascii")
   else
+    wrench.mkdirSyncRecursive(path.dirname(secretPath), 0o700)
+
+    fs.openSync(secretPath, 'w')
+    _modifyPermissions(secretPath, mimosaConfig)
+
     newKey = _genSecret()
+
     fs.writeFile secretPath, newKey, 'ascii', (err) ->
       if err
         throw "Error writing key to file [[ #{secretPath} ]]: #{err}"
       else
-      logger.success "New vault secret written to [[ #{secretPath} ]]"
+        logger.success "New vault secret written to [[ #{secretPath} ]]"
+
+
   return newKey
 
-exports.validate = (config, validators) ->
+exports.validate = (mimosaConfig, validators) ->
   errors = []
 
-  config.log.debug('validating vault')
+  mimosaConfig.log.debug('validating vault')
 
-  if validators.ifExistsIsObject(errors, "vault config", config.vault)
-    unless config.vault.extensionRegex instanceof RegExp
+  if validators.ifExistsIsObject(errors, "vault mimosaConfig", mimosaConfig.vault)
+    unless mimosaConfig.vault.extensionRegex instanceof RegExp
       errors.push "vault.extensionRegex must be an instance of RegExp"
 
-    secretPath = config.vault.secret
+    validators.ifExistsIsBoolean(errors, "enforce permissions", mimosaConfig.vault.enforcePermissions)
+
+    secretPath = mimosaConfig.vault.secret
     if secretPath is null
       try
-        packageName = require(path.join config.root, 'package.json').name
-        secretPath = path.join(config.root, ".mimosa/vault/#{packageName}.key")
+        packageName = require(path.join mimosaConfig.root, 'package.json').name
+        secretPath = path.join(mimosaConfig.root, ".mimosa/vault/#{packageName}.key")
       catch err
         errors.push("Could not find package.json or package.json did not specify name -- project name is needed to find vault ssh key")
         errors
 
-    if not config.vault?._generateKey
+    if not mimosaConfig.vault?._generateKey
       try
-        config.vault.secret = _readSecret(secretPath, config)
+        mimosaConfig.vault.secret = _readSecret(secretPath, mimosaConfig)
       catch err
-        errors.push("Config error -- could not read file given by vault.secret: " + err)
+        errors.push("mimosaConfig error -- could not read file given by vault.secret: " + err)
 
-    if validators.ifExistsIsObject(errors, "build secrets", config.vault.mimosaSecrets)
-      config.vault.mimosaSecrets = compileVault(config.vault.secret, config.vault.mimosaSecrets)
+    if validators.ifExistsIsObject(errors, "build secrets", mimosaConfig.vault.mimosaSecrets)
+      mimosaConfig.vault.mimosaSecrets = compileVault(mimosaConfig.vault.secret, mimosaConfig.vault.mimosaSecrets)
 
   errors

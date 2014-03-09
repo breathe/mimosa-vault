@@ -21,8 +21,9 @@
   ],
   "dependencies": {
     "vault": "*",
-    "shelljs": "*",
-    "underscore": "*"
+    "underscore": "*",
+    "wrench":"*",
+    "easycrypto":"*"
   },
   "license": "MIT",
   "engines": {

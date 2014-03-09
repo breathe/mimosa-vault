@@ -7,31 +7,32 @@ derived from a secret key.  The intent of this module is to provide an easy way 
 without embedding the secrets in the project's source.  It provides convenient way to re-derive all the
 secrets that a project needs in order to operate, without also requiring the syncing of an encrypted database.
 
-This model also supports a workflow where each developer/deployment uses its own secret key - with each coding site
+This module also supports a workflow where each developer/deployment uses its own secret key - with each coding site
 automatically deriving their own unique versions of all the passwords that are used within the project.
 
 Passwords are derived from a secret key and the derivation process can be controlled to specify the
 character set of the derived passwords.  There is no encrypted database to keep in sync -- if you want to re-derive the
-same passwords in multiple places, sync only the secret key.  The project source directly defines the various api's for
-which secrets are needed -- when the application's needs change, you don't have to sync an encrypted database to
-deploy the updated code -- you've already deployed the key ... just update the source code and rebuild at each site.
+same passwords in multiple places, sync only the secret key.  The project source directly describes the various api's for
+which passwords are needed -- when the application's needs change, you don't have to sync an encrypted database to
+deploy the updated code -- ... just update the source code and rebuild the project at each site.
 
-The module makes passwords available to mimosa -- allowing other mimosa modules which need to deal with things like
-deployment to gain access to credentials without requiring embedding the credentials in source code or mimosa-config.
+The module also makes passwords available to other mimosa modules -- the idea is that other mimosa modules which need
+to deal with things like could take advantage of this same mechanism to gain access to credentials without needing to
+embed the credentials in the project source code or mimosa-config.
 
-Additionally, the module will transform project files with the magic extension '.vault.coffee' (or .js or any
-extension which compiles to .js) into a json file which includes the derived passwords for the services listed in the .vault
-file.  This is primarily useful for something like server-side code which needs to embed passwords for external services
-like database servers -- but its useful for managing development/testing versions of client-side credentials
-(eg passwords for 'testing' accounts which may need to be made available to client-side code when running project test
-suites).
+The module will transform project files with the magic extension '.vault.coffee' (or .js, or any other
+extension which compiles to .js) into a json file which includes the derived passwords for the services listed in the
+.vault file.  This is primarily useful for something like server-side code which needs to embed passwords for external
+services like database servers or external web apis.  This facility is also also useful for managing
+development/testing versions of client-side credentials (eg passwords for 'testing' accounts which may need to be made
+available to client-side code when running project test suites).
 
-When this module is included, mimosa-vault will use a project specific 'secret key' to transform any .vault.js or
+When this module is included, mimosa-vault will use a project specific 'passphrase key' to transform any .vault.js or
 .vault.coffee files within the project's source javascript directory into a json file containing passwords derived from
 the key and conforming to any specified character class (in order to meet password character set/complexity requirements).
 
-The vault module ensures that knowing any generated passwords does not allow deriving any other passwords
-which would be derived from the secret key.
+The algorithm used by the vault module to derive passwords ensures that knowledge of any generated passwords does not
+allow deriving other passwords which would be derived from the secret key.
 
 ## Usage
 
@@ -39,7 +40,7 @@ Add `'vault'` to your list of modules.  That's all!  Mimosa will install the mod
 
 By default a key will be generated at .mimosa/vault/{project-name}.key if one does not already exist.  Overwrite
 the key at any time.  Copy the key from another host or location to allow mimosa-vault to re-generate the same
-secrets in multiple places -- or use a unique key everywhere the code is deployed to get unique passwords for each
+secrets in multiple sites -- or use a unique key everywhere the code is deployed to get unique passwords for each
 code deployment.
 
 ## Quick Start
