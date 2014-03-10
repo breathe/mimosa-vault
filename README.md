@@ -32,7 +32,7 @@ allow deriving other passwords which would be derived from the secret key.
 
 If desired, the files that mimosa-vault outputs can themselves be encrypted with a specified encryptionKey.  This allows
 deploying compiled code to sites without having to deploy the passwordKey --
-deploying only the encryptionKey is required.  The [stanford javascript crypto][http://crypto.stanford.edu/sjcl/]
+deploying only the encryptionKey is required.  The [stanford javascript crypto](http://crypto.stanford.edu/sjcl/)
 library is used to perform the encryption.
 
 ## Usage
