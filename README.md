@@ -7,32 +7,33 @@ derived from a secret key.  The intent of this module is to provide an easy way 
 without embedding the secrets in the project's source.  It provides convenient way to re-derive all the
 secrets that a project needs in order to operate, without also requiring the syncing of an encrypted database.
 
-This module also supports a workflow where each developer/deployment uses its own secret key - with each coding site
-automatically deriving their own unique versions of all the passwords that are used within the project.
-
 Passwords are derived from a secret key and the derivation process can be controlled to specify the
 character set of the derived passwords.  There is no encrypted database to keep in sync -- if you want to re-derive the
-same passwords in multiple places, sync only the secret key.  The project source directly describes the various api's for
-which passwords are needed -- when the application's needs change, you don't have to sync an encrypted database to
-deploy the updated code -- ... just update the source code and rebuild the project at each site.
+same passwords in multiple places, sync only the secret key.
 
 The module also makes passwords available to other mimosa modules -- the idea is that other mimosa modules which need
-to deal with things like could take advantage of this same mechanism to gain access to credentials without needing to
+to deal with things could take advantage of this same mechanism to gain access to credentials without needing to
 embed the credentials in the project source code or mimosa-config.
 
 The module will transform project files with the magic extension '.vault.coffee' (or .js, or any other
-extension which compiles to .js) into a json file which includes the derived passwords for the services listed in the
+extension which compiles to .js) into file with the the derived passwords for the services listed in the
 .vault file.  This is primarily useful for something like server-side code which needs to embed passwords for external
-services like database servers or external web apis.  This facility is also also useful for managing
+services like database servers or external web apis.  This module is also also useful for managing
 development/testing versions of client-side credentials (eg passwords for 'testing' accounts which may need to be made
 available to client-side code when running project test suites).
 
-When this module is included, mimosa-vault will use a project specific 'passphrase key' to transform any .vault.js or
-.vault.coffee files within the project's source javascript directory into a json file containing passwords derived from
-the key and conforming to any specified character class (in order to meet password character set/complexity requirements).
+When this module is included, mimosa-vault will use a project specific 'password key' to transform any .vault.js or
+.vault.coffee files within the project's source javascript directory into either a json file or a commonjs module
+containing passwords derived from the key and conforming to any specified character class (in order to meet password
+character set/complexity requirements).
 
 The algorithm used by the vault module to derive passwords ensures that knowledge of any generated passwords does not
 allow deriving other passwords which would be derived from the secret key.
+
+If desired, the files that mimosa-vault outputs can themselves be encrypted with a specified encryptionKey.  This allows
+deploying compiled code to sites without having to deploy the passwordKey --
+deploying only the encryptionKey is required.  The [stanford javascript crypto][http://crypto.stanford.edu/sjcl/]
+library is used to perform the encryption.
 
 ## Usage
 
@@ -99,18 +100,26 @@ https://github.com/jcoglan/vault
     vault:
       extensionRegex: /.vault.[a-zA-Z]+$/    # regex indicating file extensions this module should process
 
-      secret: null                  # path to secret which should be used to derive the project's passwords
-                                    # this file should be kept SECRET and protected from anyone with whom you do
-                                    # not wish to share credentials.
-                                    # It should refer to a file at a path outside of the project source control --
-                                    # if left at the default value, mimosa will use the path
-                                    # .mimosa/vault/{app}.key within the project directory where {app} is the name of
-                                    # the project as given in the package.json file
-                                    # If this file does not exist, a new one will be generated when mimosa is run
+      passwordGenerationSecret: null    # path to secret passphrase which should be used to derive the secrets
+                                        # -- should refer to a file at a path outside of the project source control --
+                                        # if null, mimosa will use the path
+                                        # .mimosa/vault/{app}.key within the project directory where {app} is the name
+                                        # of the project as given in the package.json file
 
-      outputExtension: ".json"      # write json file by default
+      encryptionSecret: null        # Path to secret passphrase which should be used to encrypt the generated files
+                                    # if left null, the output files will not be encrypted.  If defined and a file does
+                                    # not exist at vault.encryptionSecret mimosa-vault will create a new secret to
+                                    # encrypt the output with
 
-      mimosaSecrets: {}             # secrets which should be derived for the build process and made
-                                    # available for other mimosa-modules as mimosaConfig.vault.mimosaSecrets
-                                    # this allows secret derived from the key to be passed to other mimosa modules
+      outputFormat: "json"          # specify the output format -- either json or commonjs.
+                                    # if commonjs, module will export a single function which returns the vault
+                                    # if encryption is used the function will expect to be passed the secret needed
+                                    # to decrypt the vault -- the function returns decrypted vault or throws an error
+                                    # if the vault with the supplied password
+
+      mimosaPasswords: {}           # passwords which should be made available to other mimosa-modules
+                                    # at mimosaConfig.vault.mimosaPasswords
+
+      enforceFilePermissions: true  # will chmod vault.secret and generated files to ensure they are readable by
+                                    # file owner only
 ```

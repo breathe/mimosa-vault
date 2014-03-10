@@ -23,7 +23,7 @@
     "vault": "*",
     "underscore": "*",
     "wrench":"*",
-    "easycrypto":"*"
+    "sjcl":"*"
   },
   "license": "MIT",
   "engines": {

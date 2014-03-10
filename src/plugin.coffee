@@ -15,18 +15,20 @@ _checkVault = (obj) ->
 # noisily verify the shape of the options in each vault_request
 _checkVaultOptions = (name, options) ->
 
-  # passing 'symbol'>1 to Vaule constructor would break the json encoding of the output ...
+  # passing 'symbol'>1 to Vault constructor would break the json encoding of the output ...
   # don't allow user to turn on the symbol option and complain if they do
-  ALLOWED_OPTIONS = _.without(i.toLowerCase() for i in _.union(Vault.TYPES, ['length', 'repeat']), "symbol")
+  ALLOWED_OPTIONS = (i.toLowerCase() for i in _.union(Vault.TYPES, ['length', 'repeat']))
 
   options or= {}
   if not _.isObject(options) or _.isArray(options) or _.isFunction(options)
-    throw "error in key: #{name} -- value should be object with keys from #{ALLOWED_OPTIONS}"
+    throw "error with value of key: #{name} -- should be object with keys from #{ALLOWED_OPTIONS}"
 
-  for key, value of ALLOWED_OPTIONS
-    if key in options
+  for key, value of options
+    if key not in ALLOWED_OPTIONS
+      throw "error with #{name} -- invalid option #{key} supplied"
+    else
       if _.isNaN(parseInt(value))
-        throw "error in key #{key} -- value should be a Number - found #{key}"
+        throw "error with #{name}[\"#{key}\"] -- expected Number - found #{key}"
 
   return options
 

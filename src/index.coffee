@@ -3,12 +3,11 @@
 "use strict"
 
 fs = require 'fs'
-
 config = require './config'
 logger = null
-
-_ = require 'underscore'
 compileVault = require('./plugin')
+sjcl = require('sjcl')
+_ = require 'underscore'
 
 _requireFromString = (src, filename) ->
   Module = module.constructor
@@ -19,6 +18,32 @@ _requireFromString = (src, filename) ->
 _outputFileName = (mimosaConfig, inputFileName) ->
   inputFileName.replace(mimosaConfig.extensionRegex, mimosaConfig.outputExtension)
 
+_encryptOrJsonify = (passwords, encryptionSecret) ->
+  # if no encryption keys were supplied, return the plaintext as a string
+  if _.isNull(encryptionSecret)
+    return JSON.stringify(passwords)
+
+  # otherwise, return the vault represented as an encrypted string
+  return JSON.stringify(sjcl.encrypt(encryptionSecret, JSON.stringify(passwords)))
+
+_transformOutput = (passwords, vaultConfig) ->
+  # this will give us the vaultText representation encrypted or not as decided by vaultConfig.encryptWith parameter
+  vaultText = _encryptOrJsonify(passwords, vaultConfig.encryptionSecret)
+
+  isEncrypted = not _.isNull(vaultConfig.encryptionSecret)
+
+  if vaultConfig.outputFormat is "json"
+    return vaultText
+  else if vaultConfig.outputFormat is "commonjs"
+    module = "var embeddedVault = #{vaultText};\n"
+    if not isEncrypted
+      moduleFunc = () -> embeddedVault
+    else
+      module += "var sjcl = require('sjcl');\n"
+      moduleFunc = (password) -> JSON.parse(sjcl.decrypt(password, embeddedVault))
+    module += "module.exports = " + moduleFunc.toString()
+    return module
+
 _compileExtension = (mimosaConfig, options, next) ->
   vaultConfig = mimosaConfig.vault
   logger = mimosaConfig.log
@@ -27,7 +52,8 @@ _compileExtension = (mimosaConfig, options, next) ->
     file = options.files[0]
     try
       json_obj = _requireFromString(file.outputFileText, file.outputFileName)
-      file.outputFileText = JSON.stringify(compileVault(vaultConfig.secret, json_obj))
+
+      file.outputFileText = _transformOutput(compileVault(vaultConfig.passwordGenerationSecret, json_obj), vaultConfig)
       file.outputFileName = _outputFileName(vaultConfig, file.outputFileName)
     catch err
       logger.error("mimosa-vault failed to process [[ #{file.inputFileName} ]]: #{err}")
