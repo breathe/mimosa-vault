@@ -63,7 +63,7 @@ Describe the api's which need secrets as simple objects within your javascriptDi
 assets/javascripts/some_secrets.vault.coffee
 ```
 module.exports =
-    "my_twitter_account": {"upper":1, "lower":0}
+    "my_twitter_account": {"upper":1, "lower":0, revision:1}
     "my_development_couchdb_account": {}
 ```
 
@@ -94,6 +94,12 @@ password.
 See the vault project for a description of the options which can be used to control the derived password's alphabet
 https://github.com/jcoglan/vault
 
+There is one extra option 'revision' which is processed by mimosa-vault rather than the underlying
+vault module.  The value is appended to the value passed to the underlying vault -- , allowing one
+to derive new passwords for a service over the lifetime of the project.  For example if I need to change the password
+for the api "my_twitter_account", just increment the revision to identify to mimosa-vault that a different password
+should be derived.
+
 ## Default Config
 
 ```
@@ -108,8 +114,8 @@ https://github.com/jcoglan/vault
 
       encryptionSecret: null        # Path to secret passphrase which should be used to encrypt the generated files
                                     # if left null, the output files will not be encrypted.  If defined and a file does
-                                    # not exist at vault.encryptionSecret mimosa-vault will create a new secret to
-                                    # encrypt the output with
+                                    # not exist at vault.encryptionSecret mimosa-vault will write a new secret to
+                                    # the given path
 
       outputFormat: "json"          # specify the output format -- either json or commonjs.
                                     # if commonjs, module will export a single function which returns the vault
