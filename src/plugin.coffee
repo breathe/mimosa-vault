@@ -17,7 +17,7 @@ _checkVaultOptions = (name, options) ->
 
   # passing 'symbol'>1 to Vault constructor would break the json encoding of the output ...
   # don't allow user to turn on the symbol option and complain if they do
-  ALLOWED_OPTIONS = (i.toLowerCase() for i in _.union(Vault.TYPES, ['length', 'repeat']))
+  ALLOWED_OPTIONS = (i.toLowerCase() for i in _.union(Vault.TYPES, ['length', 'repeat', 'revision']))
 
   options or= {}
   if not _.isObject(options) or _.isArray(options) or _.isFunction(options)
@@ -30,7 +30,10 @@ _checkVaultOptions = (name, options) ->
       if _.isNaN(parseInt(value))
         throw "error with #{name}[\"#{key}\"] -- expected Number - found #{key}"
 
-  return options
+  if options.revision?
+    name = "#{name}-#{options.revision}"
+
+  return [name, options]
 
 # derive secrets for @arg:vault_request using supplied @arg:secret
 # @return object mapping service_name(s) to derived password(s)
@@ -41,10 +44,10 @@ compileVault = (secret, vault_request) ->
   vault_transformed = {}
 
   for service_name, service_settings of vault_request
-    service_settings = _checkVaultOptions(service_name, service_settings)
+    [service_revision_name, service_settings] = _checkVaultOptions(service_name, service_settings)
     settings = _.extend({}, service_settings, {phrase:secret, symbol:0})
     vault = new Vault(settings)
-    password = vault.generate(service_name)
+    password = vault.generate(service_revision_name)
     vault_transformed[service_name] = password
 
   return vault_transformed
